@@ -1,4 +1,5 @@
-# app.py - Bronx Ultra API Management System (FULL UPDATED)
+# app.py - Bronx Ultra API Management System
+# Deploy on Render.com
 
 import os
 import json
@@ -18,9 +19,9 @@ app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(32))
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "bronx-admin-op")
 DATA_FILE = "data.json"
 DDOS_WINDOW = 10
-DDOS_THRESHOLD = 20
+DDOS_THRESHOLD = 15
 
-# ==================== DATA ====================
+# ==================== DATA STORAGE ====================
 data_lock = Lock()
 
 def load_data():
@@ -51,7 +52,7 @@ def save_data(data):
     with open(DATA_FILE, "w") as f:
         json.dump(data, f, indent=2)
 
-# ==================== TRACKERS ====================
+# ==================== RATE LIMIT ====================
 rate_tracker = defaultdict(list)
 ip_tracker = defaultdict(list)
 
@@ -75,6 +76,7 @@ def check_ddos(ip):
         return True
     return False
 
+# ==================== AUTH ====================
 def admin_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -93,7 +95,7 @@ DASHBOARD_HTML = """
 <title>Bronx Ultra - API Dashboard</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',sans-serif; }
-body { background:linear-gradient(135deg,#0f0c29,#302b63,#24243e); min-height:100vh; color:#fff; padding:20px; }
+body { background: linear-gradient(135deg,#0f0c29,#302b63,#24243e); min-height:100vh; color:#fff; padding:20px; }
 .container { max-width:1100px; margin:0 auto; }
 .header { text-align:center; padding:30px 20px; background:rgba(255,255,255,0.05); border-radius:20px; backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,0.1); margin-bottom:20px; }
 .header h1 { font-size:2.5rem; background:linear-gradient(90deg,#ff6b6b,#feca57,#48dbfb,#ff9ff3); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
@@ -101,23 +103,26 @@ body { background:linear-gradient(135deg,#0f0c29,#302b63,#24243e); min-height:10
 .handle { display:inline-block; margin-top:12px; padding:8px 20px; background:linear-gradient(90deg,#667eea,#764ba2); border-radius:25px; font-weight:bold; }
 .card { background:rgba(255,255,255,0.05); border-radius:15px; padding:20px; margin-bottom:20px; border:1px solid rgba(255,255,255,0.1); backdrop-filter:blur(10px); }
 .card h2 { margin-bottom:15px; color:#48dbfb; font-size:1.3rem; }
-.api-item { background:rgba(0,0,0,0.3); border-radius:12px; padding:15px; margin-bottom:12px; border-left:4px solid #48dbfb; }
-.api-item .api-name { font-size:1.1rem; font-weight:bold; color:#feca57; margin-bottom:8px; }
-.api-item .api-url { font-family:monospace; font-size:0.85rem; word-break:break-all; color:#ddd; background:rgba(0,0,0,0.4); padding:10px; border-radius:8px; margin-bottom:8px; }
-.copy-btn { background:linear-gradient(90deg,#48dbfb,#0abde3); border:none; color:#fff; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:bold; font-size:0.85rem; margin-right:5px; }
+.api-box { background:rgba(0,0,0,0.3); border-radius:10px; padding:15px; margin-bottom:10px; font-family:monospace; word-break:break-all; font-size:0.9rem; }
+.copy-btn { background:linear-gradient(90deg,#48dbfb,#0abde3); border:none; color:#fff; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:bold; margin:5px 5px 0 0; }
 .copy-btn:hover { opacity:0.8; }
-.copy-btn.purple { background:linear-gradient(90deg,#667eea,#764ba2); }
-.copy-btn.green { background:linear-gradient(90deg,#10ac84,#1dd1a1); }
 .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:15px; }
 .stat-box { background:linear-gradient(135deg,rgba(102,126,234,0.3),rgba(118,75,162,0.3)); padding:20px; border-radius:12px; text-align:center; border:1px solid rgba(255,255,255,0.1); }
 .stat-box .num { font-size:2rem; font-weight:bold; color:#feca57; }
 .stat-box .label { color:#aaa; margin-top:5px; font-size:0.9rem; }
-.btn { display:inline-block; padding:12px 25px; background:linear-gradient(90deg,#667eea,#764ba2); color:#fff; text-decoration:none; border-radius:10px; font-weight:bold; border:none; cursor:pointer; margin:5px; }
-.btn:hover { transform:translateY(-2px); }
-.empty { color:#aaa; text-align:center; padding:30px; }
-.usage-box { background:rgba(0,0,0,0.4); border-radius:10px; padding:15px; margin-top:15px; }
-.usage-box input { width:100%; padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:rgba(0,0,0,0.3); color:#fff; margin-bottom:10px; font-family:monospace; }
+.btn { display:inline-block; padding:12px 25px; background:linear-gradient(90deg,#667eea,#764ba2); color:#fff; text-decoration:none; border-radius:10px; font-weight:bold; border:none; cursor:pointer; margin:5px; transition:0.3s; }
+.btn:hover { transform:translateY(-2px); box-shadow:0 10px 20px rgba(102,126,234,0.4); }
+.btn-green { background:linear-gradient(90deg,#10ac84,#1dd1a1); }
+.api-item { background:rgba(0,0,0,0.3); border-radius:12px; padding:15px; margin-bottom:12px; border-left:4px solid #48dbfb; }
+.api-item h3 { color:#feca57; margin-bottom:8px; font-size:1.1rem; }
+.api-item .url { font-family:monospace; font-size:0.8rem; color:#aaa; word-break:break-all; margin-bottom:8px; }
+.input-group { margin-bottom:15px; }
+.input-group label { display:block; margin-bottom:5px; color:#aaa; font-size:0.9rem; }
+.input-group input, .input-group select { width:100%; padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:rgba(0,0,0,0.3); color:#fff; font-size:1rem; }
+.input-group input:focus, .input-group select:focus { outline:none; border-color:#48dbfb; }
+.result-box { background:rgba(0,0,0,0.5); padding:12px; border-radius:8px; margin-top:10px; font-family:monospace; font-size:0.85rem; max-height:200px; overflow-y:auto; white-space:pre-wrap; word-break:break-all; }
 .footer { text-align:center; padding:20px; color:#666; }
+.empty { text-align:center; padding:40px; color:#666; }
 </style>
 </head>
 <body>
@@ -141,29 +146,35 @@ body { background:linear-gradient(135deg,#0f0c29,#302b63,#24243e); min-height:10
   <div class="card">
     <h2>🔌 Available APIs</h2>
     {% if apis %}
-      {% for a in apis %}
-        <div class="api-item">
-          <div class="api-name">🔹 {{ a.name }}</div>
-          <div class="api-url" id="url-{{ a.id }}">{{ a.display_url }}</div>
-          <button class="copy-btn" onclick="copyText('{{ a.display_url }}')">📋 Copy URL</button>
-          <button class="copy-btn purple" onclick="copyText('{{ a.curl }}')">📋 Copy cURL</button>
-        </div>
+      {% for api in apis %}
+      <div class="api-item">
+        <h3>🔹 {{ api.name }}</h3>
+        <div class="url">{{ api.url }}</div>
+        <button class="copy-btn" onclick="copyText('{{ api.url }}')">📋 Copy URL</button>
+        <button class="copy-btn" style="background:linear-gradient(90deg,#feca57,#ff6b6b);color:#000;" onclick="copyText('curl \\"{{ api.url }}\\"')">📋 Copy cURL</button>
+      </div>
       {% endfor %}
     {% else %}
-      <div class="empty">❌ No APIs added yet. Go to Admin Panel to add.</div>
+      <div class="empty">Koi API nahi hai. Admin Panel se add karo.</div>
     {% endif %}
   </div>
 
   <div class="card">
     <h2>🧪 Test Your Key</h2>
-    <div class="usage-box">
-      <input id="test-url" placeholder="Yahan apna full API URL paste karo..." style="display:none;">
-      <input id="test-key" placeholder="Apni Key paste karo (bronx_...)">
-      <input id="test-number" placeholder="Number (e.g. 9876543210)" value="9876543210">
-      <input id="test-message" placeholder="Message" value="Hi">
-      <button class="copy-btn green" onclick="testKey()">🚀 Send Request</button>
-      <div id="test-result" style="margin-top:15px;font-family:monospace;font-size:0.85rem;"></div>
+    <div class="input-group">
+      <label>Your Key (bronx_...)</label>
+      <input id="t-key" placeholder="bronx_xxxxxxxxxx">
     </div>
+    <div class="input-group">
+      <label>Number</label>
+      <input id="t-num" placeholder="9876543210" value="9876543210">
+    </div>
+    <div class="input-group">
+      <label>Message</label>
+      <input id="t-msg" placeholder="Hi" value="Hi">
+    </div>
+    <button class="btn btn-green" onclick="testKey()">🚀 Send Request</button>
+    <div id="t-result"></div>
   </div>
 
   <div class="card" style="text-align:center;">
@@ -174,25 +185,28 @@ body { background:linear-gradient(135deg,#0f0c29,#302b63,#24243e); min-height:10
 </div>
 <script>
 function copyText(t) { navigator.clipboard.writeText(t).then(()=>alert('✅ Copied!')); }
+
 async function testKey() {
-  const key = document.getElementById('test-key').value.trim();
-  const num = document.getElementById('test-number').value.trim();
-  const msg = document.getElementById('test-message').value.trim();
-  if(!key) return alert('Key daalo');
-  const res = document.getElementById('test-result');
-  res.innerHTML = '⏳ Sending...';
+  const key = document.getElementById('t-key').value.trim();
+  const num = document.getElementById('t-num').value.trim();
+  const msg = document.getElementById('t-msg').value.trim();
+  const res = document.getElementById('t-result');
+  if(!key) { alert('Enter key'); return; }
+  res.innerHTML = '<div class="result-box">⏳ Sending...</div>';
   try {
     const r = await fetch(`/api/send?key=${encodeURIComponent(key)}&number=${encodeURIComponent(num)}&message=${encodeURIComponent(msg)}&count=1`);
     const d = await r.json();
-    res.innerHTML = '<pre style="background:rgba(0,0,0,0.5);padding:10px;border-radius:8px;overflow:auto;">'+JSON.stringify(d,null,2)+'</pre>';
-  } catch(e) { res.innerHTML = '❌ Error: '+e; }
+    res.innerHTML = '<div class="result-box">' + JSON.stringify(d, null, 2) + '</div>';
+  } catch(e) {
+    res.innerHTML = '<div class="result-box">❌ ' + e.message + '</div>';
+  }
 }
 </script>
 </body>
 </html>
 """
 
-# ==================== ADMIN LOGIN ====================
+# ==================== ADMIN LOGIN HTML ====================
 ADMIN_LOGIN_HTML = """
 <!DOCTYPE html>
 <html>
@@ -208,6 +222,7 @@ h1 { color:#fff; text-align:center; margin-bottom:25px; background:linear-gradie
 input { width:100%; padding:14px; margin-bottom:15px; border-radius:10px; border:1px solid rgba(255,255,255,0.2); background:rgba(0,0,0,0.3); color:#fff; font-size:1rem; }
 input:focus { outline:none; border-color:#48dbfb; }
 button { width:100%; padding:14px; border:none; border-radius:10px; background:linear-gradient(90deg,#667eea,#764ba2); color:#fff; font-weight:bold; font-size:1rem; cursor:pointer; }
+button:hover { opacity:0.9; }
 .err { color:#ff6b6b; text-align:center; margin-bottom:10px; }
 </style>
 </head>
@@ -224,7 +239,7 @@ button { width:100%; padding:14px; border:none; border-radius:10px; background:l
 </html>
 """
 
-# ==================== ADMIN PANEL ====================
+# ==================== ADMIN PANEL HTML ====================
 ADMIN_HTML = """
 <!DOCTYPE html>
 <html lang="en">
@@ -240,14 +255,14 @@ body { background:linear-gradient(135deg,#0f0c29,#302b63,#24243e); min-height:10
 .header h1 { background:linear-gradient(90deg,#ff6b6b,#feca57,#48dbfb); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
 .logout { background:linear-gradient(90deg,#ff6b6b,#ee5253); color:#fff; padding:10px 20px; border-radius:10px; text-decoration:none; font-weight:bold; }
 .tabs { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; }
-.tab { padding:12px 20px; background:rgba(255,255,255,0.05); border-radius:10px; cursor:pointer; font-weight:bold; border:1px solid rgba(255,255,255,0.1); }
+.tab { padding:12px 20px; background:rgba(255,255,255,0.05); border-radius:10px; cursor:pointer; font-weight:bold; border:1px solid rgba(255,255,255,0.1); transition:0.3s; }
 .tab.active { background:linear-gradient(90deg,#667eea,#764ba2); }
 .tab:hover { background:rgba(102,126,234,0.4); }
 .panel { display:none; background:rgba(255,255,255,0.05); border-radius:15px; padding:25px; border:1px solid rgba(255,255,255,0.1); }
 .panel.active { display:block; }
 .card { background:rgba(0,0,0,0.2); border-radius:12px; padding:20px; margin-bottom:15px; }
 .card h3 { color:#48dbfb; margin-bottom:15px; }
-.stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:15px; }
+.stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:15px; margin-bottom:20px; }
 .stat { background:linear-gradient(135deg,rgba(102,126,234,0.3),rgba(118,75,162,0.3)); padding:20px; border-radius:12px; text-align:center; }
 .stat .num { font-size:1.8rem; font-weight:bold; color:#feca57; }
 .stat .label { color:#aaa; font-size:0.85rem; margin-top:5px; }
@@ -261,18 +276,14 @@ label { display:block; margin-bottom:5px; color:#aaa; font-size:0.85rem; }
 .btn-warn { background:linear-gradient(90deg,#feca57,#ff9f43); color:#000; }
 .btn:hover { opacity:0.85; }
 table { width:100%; border-collapse:collapse; margin-top:10px; }
-th, td { padding:10px; text-align:left; border-bottom:1px solid rgba(255,255,255,0.1); font-size:0.85rem; word-break:break-word; }
+th, td { padding:10px; text-align:left; border-bottom:1px solid rgba(255,255,255,0.1); font-size:0.88rem; word-break:break-word; }
 th { background:rgba(102,126,234,0.3); color:#48dbfb; }
 tr:hover { background:rgba(255,255,255,0.03); }
-.tag { padding:3px 9px; border-radius:12px; font-size:0.72rem; font-weight:bold; }
+.tag { padding:3px 9px; border-radius:12px; font-size:0.75rem; font-weight:bold; }
 .tag-active { background:#10ac84; }
 .tag-expired { background:#ee5253; }
 .tag-stopped { background:#feca57; color:#000; }
-.api-card { background:rgba(0,0,0,0.3); border-left:4px solid #48dbfb; border-radius:10px; padding:15px; margin-bottom:12px; }
-.api-card .api-title { font-size:1rem; font-weight:bold; color:#feca57; margin-bottom:6px; }
-.api-card .api-url { font-family:monospace; font-size:0.78rem; color:#aaa; word-break:break-all; margin-bottom:8px; }
-.api-card .api-id { font-size:0.75rem; color:#feca57; background:rgba(0,0,0,0.5); padding:3px 8px; border-radius:5px; display:inline-block; margin-bottom:8px; }
-.log-item { padding:8px; background:rgba(0,0,0,0.3); border-radius:6px; margin-bottom:5px; font-size:0.82rem; font-family:monospace; }
+.log-item { padding:8px; background:rgba(0,0,0,0.3); border-radius:6px; margin-bottom:5px; font-size:0.85rem; font-family:monospace; }
 .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; align-items:center; justify-content:center; padding:20px; }
 .modal.show { display:flex; }
 .modal-content { background:#1a1a2e; padding:30px; border-radius:15px; max-width:500px; width:100%; max-height:90vh; overflow-y:auto; border:1px solid rgba(255,255,255,0.2); }
@@ -290,9 +301,9 @@ tr:hover { background:rgba(255,255,255,0.03); }
     <div class="tab active" onclick="showTab('stats',this)">📊 Stats</div>
     <div class="tab" onclick="showTab('apis',this)">🔌 APIs</div>
     <div class="tab" onclick="showTab('keys',this)">🔑 Keys</div>
-    <div class="tab" onclick="showTab('live',this)">📡 Live</div>
-    <div class="tab" onclick="showTab('ips',this)">🛡️ IPs</div>
-    <div class="tab" onclick="showTab('backup',this)">💾 Backup</div>
+    <div class="tab" onclick="showTab('live',this)">📡 Live Monitor</div>
+    <div class="tab" onclick="showTab('ips',this)">🛡️ IP Management</div>
+    <div class="tab" onclick="showTab('backup',this)">💾 Import/Export</div>
   </div>
 
   <!-- STATS -->
@@ -312,14 +323,14 @@ tr:hover { background:rgba(255,255,255,0.03); }
   <div class="panel" id="apis">
     <div class="card">
       <h3>➕ Add Custom API</h3>
-      <label>API Name (yeh naam keys dropdown me aayega)</label>
-      <input id="api-name" placeholder="e.g. bomber">
-      <label>API Endpoint (base URL - optional)</label>
-      <input id="api-endpoint" placeholder="https://bronx-api-bom-v1000.vercel.app/send">
+      <label>API Name (yeh dashboard pe dikhega)</label>
+      <input id="api-name" placeholder="e.g. bom, bomber, sms-api">
+      <label>API Endpoint (base URL)</label>
+      <input id="api-endpoint" placeholder="https://bronx-new-api.duckdns.org/send">
       <label>API Example Number</label>
       <input id="api-example" placeholder="9890909851">
-      <label>API Full URL Template — use {number},{message},{count}</label>
-      <textarea id="api-url" rows="3" placeholder="https://bronx-api-bom-v1000.vercel.app/send?key=bronx-op&message={message}&number={number}&count={count}"></textarea>
+      <label>API Full URL Template — {key} {number} {message} {count} use karo</label>
+      <textarea id="api-url" rows="3" placeholder="https://bronx-new-api.duckdns.org/send?key={key}&message={message}&number={number}&count={count}"></textarea>
       <button class="btn btn-success" onclick="addApi()">➕ Add API</button>
     </div>
     <div class="card">
@@ -332,11 +343,11 @@ tr:hover { background:rgba(255,255,255,0.03); }
   <div class="panel" id="keys">
     <div class="card">
       <h3>🔑 Generate Key</h3>
-      <label>Select API (name dropdown me aayega)</label>
+      <label>Select API (naam se select karo)</label>
       <select id="key-api"></select>
-      <label>Key Name (jaise: user1, premium)</label>
-      <input id="key-name" placeholder="e.g. user1">
-      <label>Expiry (1day, 7day, 30day, 365day)</label>
+      <label>Key Name</label>
+      <input id="key-name" placeholder="e.g. Premium User 1">
+      <label>Expiry (e.g. 1day, 7day, 30day)</label>
       <input id="key-expiry" placeholder="30day">
       <label>Rate Limit (per minute)</label>
       <input id="key-limit" type="number" value="10" min="1">
@@ -356,7 +367,7 @@ tr:hover { background:rgba(255,255,255,0.03); }
     <div class="card">
       <h3>📡 Live Request Monitor</h3>
       <button class="btn btn-primary" onclick="loadLive()">🔄 Refresh</button>
-      <button class="btn btn-warn" onclick="toggleAuto()" id="auto-btn">▶️ Auto: OFF</button>
+      <button class="btn btn-warn" onclick="toggleAuto()" id="auto-btn">▶️ Auto Refresh: OFF</button>
       <div id="live-logs" style="margin-top:15px; max-height:500px; overflow-y:auto;"></div>
     </div>
     <div class="card">
@@ -368,7 +379,7 @@ tr:hover { background:rgba(255,255,255,0.03); }
   <!-- IPS -->
   <div class="panel" id="ips">
     <div class="card">
-      <h3>🛡️ Banned IPs</h3>
+      <h3>🛡️ Banned IPs (Auto-ban after 15 req/10s)</h3>
       <div id="banned-list"></div>
       <label style="margin-top:15px;">Manually Ban IP</label>
       <input id="ban-ip" placeholder="e.g. 192.168.1.1">
@@ -384,10 +395,12 @@ tr:hover { background:rgba(255,255,255,0.03); }
   <div class="panel" id="backup">
     <div class="card">
       <h3>💾 Export Data</h3>
-      <a href="/admin/export" class="btn btn-success" style="text-decoration:none;">⬇️ Download JSON</a>
+      <button class="btn btn-primary" onclick="exportData()">📥 Export JSON</button>
+      <a href="/admin/export" class="btn btn-success" style="text-decoration:none;">⬇️ Download Export</a>
     </div>
     <div class="card">
       <h3>📤 Import Data</h3>
+      <label>Paste JSON here</label>
       <textarea id="import-json" rows="8" placeholder='{"apis":[],"keys":[]}'></textarea>
       <button class="btn btn-warn" onclick="importData()">📤 Import</button>
     </div>
@@ -427,9 +440,10 @@ function showTab(id, el) {
   if(id==='ips') { loadBanned(); loadIpList(); }
 }
 
-async function api(url, opts={}) { const r = await fetch(url, opts); return r.json(); }
-
-function copyText(t) { navigator.clipboard.writeText(t).then(()=>alert('✅ Copied: '+t)); }
+async function api(url, opts={}) {
+  const r = await fetch(url, opts);
+  return r.json();
+}
 
 async function loadStats() {
   const d = await api('/admin/api/stats');
@@ -441,6 +455,7 @@ async function loadStats() {
   document.getElementById('s-banned').textContent = d.banned;
 }
 
+// APIS
 async function loadApis() {
   const d = await api('/admin/api/apis');
   const list = document.getElementById('api-list');
@@ -449,12 +464,18 @@ async function loadApis() {
   sel.innerHTML = '<option value="">-- Select API --</option>';
   if(!d.apis.length) { list.innerHTML = '<p style="color:#aaa">No APIs yet</p>'; return; }
   d.apis.forEach(a=>{
-    list.innerHTML += `<div class="api-card">
-      <div class="api-title">🔹 ${a.name}</div>
-      <div class="api-id">🆔 ID: ${a.id} <button class="btn btn-primary" style="padding:2px 8px;font-size:0.7rem;margin-left:5px;" onclick="copyText('${a.id}')">📋</button></div>
-      <div class="api-url">${a.url}</div>
-      <button class="btn btn-warn" onclick="editApi('${a.id}')">✏️ Edit</button>
-      <button class="btn btn-danger" onclick="delApi('${a.id}')">🗑️ Delete</button>
+    list.innerHTML += `<div class="card" style="margin-bottom:10px;border-left:4px solid #48dbfb;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+        <div>
+          <strong style="color:#feca57;">🔹 ${a.name}</strong>
+          <div style="font-size:0.72rem; color:#888; margin-top:4px;">ID: ${a.id}</div>
+        </div>
+        <div>
+          <button class="btn btn-warn" onclick="editApi('${a.id}')">✏️ Edit</button>
+          <button class="btn btn-danger" onclick="delApi('${a.id}')">🗑️ Delete</button>
+        </div>
+      </div>
+      <div style="font-family:monospace; font-size:0.78rem; color:#aaa; margin-top:8px; word-break:break-all;">${a.url}</div>
     </div>`;
     sel.innerHTML += `<option value="${a.id}">${a.name}</option>`;
   });
@@ -465,7 +486,7 @@ async function addApi() {
   const endpoint = document.getElementById('api-endpoint').value.trim();
   const example = document.getElementById('api-example').value.trim();
   const url = document.getElementById('api-url').value.trim();
-  if(!name || !url) return alert('Name aur URL required');
+  if(!name || !endpoint || !url) return alert('Fill all fields');
   const d = await api('/admin/api/apis', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name,endpoint,example,url})});
   if(d.ok) { 
     document.getElementById('api-name').value=''; 
@@ -473,28 +494,26 @@ async function addApi() {
     document.getElementById('api-example').value=''; 
     document.getElementById('api-url').value=''; 
     loadApis(); 
-    alert('✅ API Added'); 
+    alert('✅ API Added — Dashboard pe dikhega!'); 
   }
 }
 
 async function delApi(id) {
-  if(!confirm('Delete this API?')) return;
+  if(!confirm('Delete this API? Jo keys isse linked hain woh bhi kaam nahi karengi.')) return;
   await api('/admin/api/apis/'+id, {method:'DELETE'});
   loadApis();
 }
 
 async function editApi(id) {
-  const d = await api('/admin/api/apis');
-  const a = d.apis.find(x=>x.id===id);
-  if(!a) return;
-  const name = prompt('New API name:', a.name);
+  const name = prompt('New API name:');
   if(!name) return;
-  const url = prompt('New URL template:', a.url);
+  const url = prompt('New URL template:');
   if(!url) return;
   await api('/admin/api/apis/'+id, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name,url})});
   loadApis();
 }
 
+// KEYS
 async function loadKeys() {
   const d = await api('/admin/api/keys');
   const tb = document.querySelector('#key-table tbody');
@@ -504,9 +523,12 @@ async function loadKeys() {
     const status = expired ? 'expired' : k.status;
     const cls = status==='active'?'tag-active':status==='expired'?'tag-expired':'tag-stopped';
     tb.innerHTML += `<tr>
-      <td style="font-family:monospace;font-size:0.75rem;">${k.key}<br><button class="btn btn-primary" style="padding:2px 6px;font-size:0.7rem;margin-top:3px;" onclick="copyText('${k.key}')">📋</button></td>
+      <td style="font-family:monospace;font-size:0.75rem;">
+        ${k.key.substring(0,20)}...
+        <button class="btn btn-primary" style="padding:3px 8px;font-size:0.7rem;" onclick="copyKey('${k.key}')">📋</button>
+      </td>
       <td>${k.name}</td>
-      <td>${k.api_name||'-'}</td>
+      <td><b style="color:#feca57;">${k.api_name||'-'}</b></td>
       <td>${k.expires_at?new Date(k.expires_at).toLocaleDateString():'Never'}</td>
       <td>${k.rate_limit}/min</td>
       <td><span class="tag ${cls}">${status}</span></td>
@@ -519,20 +541,34 @@ async function loadKeys() {
   });
 }
 
+function copyKey(k) { navigator.clipboard.writeText(k).then(()=>alert('✅ Key copied: '+k)); }
+
 async function genKey() {
   const api_id = document.getElementById('key-api').value;
   const name = document.getElementById('key-name').value.trim();
   const expiry = document.getElementById('key-expiry').value.trim();
   const rate_limit = parseInt(document.getElementById('key-limit').value)||10;
-  if(!api_id) return alert('API select karo');
-  if(!name) return alert('Key name daalo');
+  if(!api_id) return alert('Select API');
+  if(!name) return alert('Enter name');
   const d = await api('/admin/api/keys', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({api_id,name,expiry,rate_limit})});
-  if(d.ok) { alert('✅ Key Generated:\\n\\n'+d.key+'\\n\\nCopy kar lo!'); document.getElementById('key-name').value=''; loadKeys(); }
+  if(d.ok) { 
+    alert('✅ Key Generated:\\n\\n' + d.key + '\\n\\nYeh key copy karke dashboard pe use karo!'); 
+    document.getElementById('key-name').value=''; 
+    loadKeys(); 
+  }
   else alert('❌ '+d.error);
 }
 
-async function delKey(id) { if(!confirm('Delete?')) return; await api('/admin/api/keys/'+id, {method:'DELETE'}); loadKeys(); }
-async function toggleKey(id) { await api('/admin/api/keys/'+id+'/toggle', {method:'POST'}); loadKeys(); }
+async function delKey(id) {
+  if(!confirm('Delete this key?')) return;
+  await api('/admin/api/keys/'+id, {method:'DELETE'});
+  loadKeys();
+}
+
+async function toggleKey(id) {
+  await api('/admin/api/keys/'+id+'/toggle', {method:'POST'});
+  loadKeys();
+}
 
 async function editKey(id) {
   const d = await api('/admin/api/keys');
@@ -545,6 +581,7 @@ async function editKey(id) {
   document.getElementById('e-status').value = k.status;
   document.getElementById('edit-modal').classList.add('show');
 }
+
 function closeModal() { document.getElementById('edit-modal').classList.remove('show'); }
 
 async function saveEditKey() {
@@ -555,9 +592,11 @@ async function saveEditKey() {
     status: document.getElementById('e-status').value
   };
   await api('/admin/api/keys/'+editKeyId, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
-  closeModal(); loadKeys();
+  closeModal();
+  loadKeys();
 }
 
+// LIVE
 async function loadLive() {
   const d = await api('/admin/api/live');
   const el = document.getElementById('live-logs');
@@ -574,22 +613,24 @@ async function loadKeyUsage() {
 
 function toggleAuto() {
   const btn = document.getElementById('auto-btn');
-  if(autoTimer) { clearInterval(autoTimer); autoTimer=null; btn.textContent='▶️ Auto: OFF'; }
-  else { autoTimer = setInterval(()=>{loadLive();loadKeyUsage();},3000); btn.textContent='⏸️ Auto: ON'; }
+  if(autoTimer) { clearInterval(autoTimer); autoTimer=null; btn.textContent='▶️ Auto Refresh: OFF'; }
+  else { autoTimer = setInterval(()=>{loadLive();loadKeyUsage();},3000); btn.textContent='⏸️ Auto Refresh: ON'; }
 }
 
+// IPS
 async function loadBanned() {
   const d = await api('/admin/api/banned');
   const el = document.getElementById('banned-list');
   if(!d.banned.length) { el.innerHTML = '<p style="color:#aaa">No banned IPs</p>'; return; }
-  el.innerHTML = d.banned.map(ip=>`<div class="log-item">🚫 ${ip} <button class="btn btn-success" style="padding:3px 10px;font-size:0.72rem;" onclick="unbanIp('${ip}')">Unban</button></div>`).join('');
+  el.innerHTML = d.banned.map(ip=>`<div class="log-item">🚫 ${ip} <button class="btn btn-success" style="padding:4px 10px;font-size:0.75rem;" onclick="unbanIp('${ip}')">Unban</button></div>`).join('');
 }
 
 async function banIp() {
   const ip = document.getElementById('ban-ip').value.trim();
   if(!ip) return;
   await api('/admin/api/ban', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ip})});
-  document.getElementById('ban-ip').value=''; loadBanned();
+  document.getElementById('ban-ip').value='';
+  loadBanned();
 }
 
 async function unbanIp(ip) {
@@ -605,11 +646,22 @@ async function loadIpList() {
   el.innerHTML = entries.map(([ip,c])=>`<div class="log-item">🌐 ${ip}: <b>${c}</b> requests</div>`).join('');
 }
 
+// BACKUP
+async function exportData() {
+  const d = await api('/admin/export');
+  const blob = new Blob([JSON.stringify(d,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'bronx-backup-'+Date.now()+'.json';
+  a.click();
+}
+
 async function importData() {
   try {
     const data = JSON.parse(document.getElementById('import-json').value);
     await api('/admin/import', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
-    alert('✅ Imported!'); loadApis(); loadKeys();
+    alert('✅ Imported!');
+    loadApis(); loadKeys();
   } catch(e) { alert('❌ Invalid JSON'); }
 }
 
@@ -619,48 +671,34 @@ loadStats();
 </html>
 """
 
-# ==================== DASHBOARD ROUTE ====================
+# ==================== ROUTES ====================
+
 @app.route("/")
 def index():
     data = load_data()
-    host = request.host_url.rstrip('/')
-    
-    # Har API ka full display URL banao (with example key placeholder)
-    apis_display = []
-    for a in data["apis"]:
-        display_url = a["url"].replace("{key}", "YOUR_KEY").replace("{number}", "9876543210").replace("{message}", "Hi").replace("{count}", "5")
-        # agar {key} nahi hai toh key param add karo
-        if "{key}" not in a["url"] and "key=" not in display_url:
-            sep = "&" if "?" in display_url else "?"
-            display_url = display_url + sep + "key=YOUR_KEY"
-        curl = f'curl "{display_url}"'
-        apis_display.append({
-            "id": a["id"],
-            "name": a["name"],
-            "display_url": display_url,
-            "curl": curl
-        })
-    
     today = datetime.now().strftime("%Y-%m-%d")
     month = datetime.now().strftime("%Y-%m")
+    active_keys = len([k for k in data["keys"] if k.get("status")=="active"])
+    # Dashboard pe saari APIs dikhao (jo admin panel se add ki gayi hain)
     return render_template_string(DASHBOARD_HTML,
-        apis=apis_display,
+        apis=data["apis"],
         total=data["stats"]["total_requests"],
         today=data["stats"]["daily"].get(today, 0),
         monthly=data["stats"]["monthly"].get(month, 0),
-        active_keys=len([k for k in data["keys"] if k.get("status")=="active"])
+        active_keys=active_keys
     )
 
 # ==================== PUBLIC API ====================
+
 @app.route("/api/send")
 def api_send():
-    return handle_request()
+    return handle_api_request(custom=False)
 
 @app.route("/api/custom")
 def api_custom():
-    return handle_request(custom=True)
+    return handle_api_request(custom=True)
 
-def handle_request(custom=False):
+def handle_api_request(custom=False):
     ip = request.headers.get("X-Forwarded-For", request.remote_addr).split(",")[0].strip()
     key_str = request.args.get("key", "").strip()
     number = request.args.get("number", "").strip()
@@ -721,11 +759,6 @@ def handle_request(custom=False):
 
     url = api_obj["url"]
     url = url.replace("{key}", key_str).replace("{number}", number).replace("{message}", message).replace("{count}", count)
-    
-    # agar {key} placeholder nahi tha, toh key param add karo
-    if "{key}" not in api_obj["url"] and "key=" not in api_obj["url"]:
-        sep = "&" if "?" in url else "?"
-        url = url + sep + "key=" + key_str
 
     try:
         r = http_requests.get(url, timeout=15)
@@ -760,6 +793,7 @@ def handle_request(custom=False):
     return jsonify({"status": status=="success", "response": result, "api": api_obj["name"]})
 
 # ==================== ADMIN AUTH ====================
+
 @app.route("/admin/login", methods=["GET","POST"])
 def admin_login():
     if request.method == "POST":
@@ -780,6 +814,7 @@ def admin_panel():
     return render_template_string(ADMIN_HTML)
 
 # ==================== ADMIN API ====================
+
 @app.route("/admin/api/stats")
 @admin_required
 def admin_stats():
@@ -804,7 +839,7 @@ def admin_apis():
         api = {
             "id": secrets.token_hex(8),
             "name": body["name"],
-            "endpoint": body.get("endpoint",""),
+            "endpoint": body["endpoint"],
             "example": body.get("example",""),
             "url": body["url"],
             "created": datetime.now().isoformat()
@@ -954,7 +989,8 @@ def admin_ip_list():
 @app.route("/admin/export")
 @admin_required
 def admin_export():
-    return jsonify(load_data())
+    data = load_data()
+    return jsonify(data)
 
 @app.route("/admin/import", methods=["POST"])
 @admin_required
@@ -969,6 +1005,7 @@ def admin_import():
         return jsonify({"ok": False, "error": "Invalid JSON"})
 
 # ==================== MAIN ====================
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
