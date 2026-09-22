@@ -1,5 +1,5 @@
 # app.py - Bronx Ultra API Management System
-# Deploy on Render.com
+# Public URL + Hidden Real URL Support
 
 import os
 import json
@@ -103,7 +103,6 @@ body { background: linear-gradient(135deg,#0f0c29,#302b63,#24243e); min-height:1
 .handle { display:inline-block; margin-top:12px; padding:8px 20px; background:linear-gradient(90deg,#667eea,#764ba2); border-radius:25px; font-weight:bold; }
 .card { background:rgba(255,255,255,0.05); border-radius:15px; padding:20px; margin-bottom:20px; border:1px solid rgba(255,255,255,0.1); backdrop-filter:blur(10px); }
 .card h2 { margin-bottom:15px; color:#48dbfb; font-size:1.3rem; }
-.api-box { background:rgba(0,0,0,0.3); border-radius:10px; padding:15px; margin-bottom:10px; font-family:monospace; word-break:break-all; font-size:0.9rem; }
 .copy-btn { background:linear-gradient(90deg,#48dbfb,#0abde3); border:none; color:#fff; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:bold; margin:5px 5px 0 0; }
 .copy-btn:hover { opacity:0.8; }
 .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:15px; }
@@ -149,9 +148,9 @@ body { background: linear-gradient(135deg,#0f0c29,#302b63,#24243e); min-height:1
       {% for api in apis %}
       <div class="api-item">
         <h3>🔹 {{ api.name }}</h3>
-        <div class="url">{{ api.url }}</div>
-        <button class="copy-btn" onclick="copyText('{{ api.url }}')">📋 Copy URL</button>
-        <button class="copy-btn" style="background:linear-gradient(90deg,#feca57,#ff6b6b);color:#000;" onclick="copyText('curl \\"{{ api.url }}\\"')">📋 Copy cURL</button>
+        <div class="url">{{ api.public_url }}</div>
+        <button class="copy-btn" onclick="copyText('{{ api.public_url }}')">📋 Copy URL</button>
+        <button class="copy-btn" style="background:linear-gradient(90deg,#feca57,#ff6b6b);color:#000;" onclick="copyText('curl \\"{{ api.public_url }}\\"')">📋 Copy cURL</button>
       </div>
       {% endfor %}
     {% else %}
@@ -286,8 +285,9 @@ tr:hover { background:rgba(255,255,255,0.03); }
 .log-item { padding:8px; background:rgba(0,0,0,0.3); border-radius:6px; margin-bottom:5px; font-size:0.85rem; font-family:monospace; }
 .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; align-items:center; justify-content:center; padding:20px; }
 .modal.show { display:flex; }
-.modal-content { background:#1a1a2e; padding:30px; border-radius:15px; max-width:500px; width:100%; max-height:90vh; overflow-y:auto; border:1px solid rgba(255,255,255,0.2); }
+.modal-content { background:#1a1a2e; padding:30px; border-radius:15px; max-width:550px; width:100%; max-height:90vh; overflow-y:auto; border:1px solid rgba(255,255,255,0.2); }
 .modal-content h3 { margin-bottom:20px; color:#48dbfb; }
+.hint { font-size:0.75rem; color:#feca57; margin-top:-5px; margin-bottom:10px; }
 </style>
 </head>
 <body>
@@ -323,14 +323,22 @@ tr:hover { background:rgba(255,255,255,0.03); }
   <div class="panel" id="apis">
     <div class="card">
       <h3>➕ Add Custom API</h3>
-      <label>API Name (yeh dashboard pe dikhega)</label>
-      <input id="api-name" placeholder="e.g. bom, bomber, sms-api">
-      <label>API Endpoint (base URL)</label>
-      <input id="api-endpoint" placeholder="https://bronx-new-api.duckdns.org/send">
-      <label>API Example Number</label>
-      <input id="api-example" placeholder="9890909851">
-      <label>API Full URL Template — {key} {number} {message} {count} use karo</label>
-      <textarea id="api-url" rows="3" placeholder="https://bronx-new-api.duckdns.org/send?key={key}&message={message}&number={number}&count={count}"></textarea>
+      <label>API Name (dashboard pe dikhega)</label>
+      <input id="api-name" placeholder="e.g. Bom, Bronx SMS">
+      
+      <label>🌐 PUBLIC URL (dashboard pe dikhega — tumhari website)</label>
+      <input id="api-public" placeholder="https://bronx-new-api.duckdns.org/send" value="https://bronx-new-api.duckdns.org/send">
+      <div class="hint">Yeh URL user ko dikhega. Isme {key}, {number}, {message}, {count} use karo.</div>
+      <textarea id="api-public-tpl" rows="2" placeholder="https://bronx-new-api.duckdns.org/send?key={key}&message={message}&number={number}&count={count}">https://bronx-new-api.duckdns.org/send?key={key}&message={message}&number={number}&count={count}</textarea>
+      
+      <label>🔒 REAL URL (HIDDEN — actual request yahan jayegi)</label>
+      <input id="api-real" placeholder="https://real-api.vercel.app/send">
+      <div class="hint">Yeh URL user ko NAHI dikhega. System andar se yahan request bhejega.</div>
+      <textarea id="api-real-tpl" rows="2" placeholder="https://real-api.vercel.app/send?key=bronx-op&message={message}&number={number}&count={count}"></textarea>
+      
+      <label>Real API Key (agar chahiye — {key} ki jagah use hoga)</label>
+      <input id="api-real-key" placeholder="bronx-op">
+      
       <button class="btn btn-success" onclick="addApi()">➕ Add API</button>
     </div>
     <div class="card">
@@ -343,7 +351,7 @@ tr:hover { background:rgba(255,255,255,0.03); }
   <div class="panel" id="keys">
     <div class="card">
       <h3>🔑 Generate Key</h3>
-      <label>Select API (naam se select karo)</label>
+      <label>Select API (naam se)</label>
       <select id="key-api"></select>
       <label>Key Name</label>
       <input id="key-name" placeholder="e.g. Premium User 1">
@@ -407,6 +415,23 @@ tr:hover { background:rgba(255,255,255,0.03); }
   </div>
 </div>
 
+<!-- Edit API Modal -->
+<div class="modal" id="edit-api-modal">
+  <div class="modal-content">
+    <h3>✏️ Edit API</h3>
+    <label>API Name</label>
+    <input id="ea-name">
+    <label>🌐 PUBLIC URL Template (dikhne wala)</label>
+    <textarea id="ea-public" rows="2"></textarea>
+    <label>🔒 REAL URL Template (hidden)</label>
+    <textarea id="ea-real" rows="2"></textarea>
+    <label>Real API Key</label>
+    <input id="ea-realkey">
+    <button class="btn btn-success" onclick="saveEditApi()">💾 Save</button>
+    <button class="btn btn-danger" onclick="closeEditApi()">✖ Cancel</button>
+  </div>
+</div>
+
 <!-- Edit Key Modal -->
 <div class="modal" id="edit-modal">
   <div class="modal-content">
@@ -426,6 +451,7 @@ tr:hover { background:rgba(255,255,255,0.03); }
 
 <script>
 let editKeyId = null;
+let editApiId = null;
 let autoTimer = null;
 
 function showTab(id, el) {
@@ -455,7 +481,7 @@ async function loadStats() {
   document.getElementById('s-banned').textContent = d.banned;
 }
 
-// APIS
+// ===== APIS =====
 async function loadApis() {
   const d = await api('/admin/api/apis');
   const list = document.getElementById('api-list');
@@ -475,7 +501,10 @@ async function loadApis() {
           <button class="btn btn-danger" onclick="delApi('${a.id}')">🗑️ Delete</button>
         </div>
       </div>
-      <div style="font-family:monospace; font-size:0.78rem; color:#aaa; margin-top:8px; word-break:break-all;">${a.url}</div>
+      <div style="margin-top:8px;font-size:0.78rem;">
+        <div style="color:#1dd1a1;">🌐 PUBLIC: <span style="font-family:monospace;color:#aaa;">${a.public_url||'-'}</span></div>
+        <div style="color:#ee5253;">🔒 REAL (hidden): <span style="font-family:monospace;color:#aaa;">${a.real_url||'-'}</span></div>
+      </div>
     </div>`;
     sel.innerHTML += `<option value="${a.id}">${a.name}</option>`;
   });
@@ -483,37 +512,53 @@ async function loadApis() {
 
 async function addApi() {
   const name = document.getElementById('api-name').value.trim();
-  const endpoint = document.getElementById('api-endpoint').value.trim();
-  const example = document.getElementById('api-example').value.trim();
-  const url = document.getElementById('api-url').value.trim();
-  if(!name || !endpoint || !url) return alert('Fill all fields');
-  const d = await api('/admin/api/apis', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name,endpoint,example,url})});
+  const public_tpl = document.getElementById('api-public-tpl').value.trim();
+  const real_tpl = document.getElementById('api-real-tpl').value.trim();
+  const real_key = document.getElementById('api-real-key').value.trim();
+  if(!name || !public_tpl || !real_tpl) return alert('Fill name, public URL, and real URL');
+  const d = await api('/admin/api/apis', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name, public_url: public_tpl, real_url: real_tpl, real_key})});
   if(d.ok) { 
     document.getElementById('api-name').value=''; 
-    document.getElementById('api-endpoint').value=''; 
-    document.getElementById('api-example').value=''; 
-    document.getElementById('api-url').value=''; 
+    document.getElementById('api-real-tpl').value=''; 
+    document.getElementById('api-real-key').value='';
     loadApis(); 
-    alert('✅ API Added — Dashboard pe dikhega!'); 
+    alert('✅ API Added — Dashboard pe PUBLIC URL dikhega, REAL URL chhupa rahega!'); 
   }
 }
 
 async function delApi(id) {
-  if(!confirm('Delete this API? Jo keys isse linked hain woh bhi kaam nahi karengi.')) return;
+  if(!confirm('Delete this API? Saari linked keys bhi kaam nahi karengi.')) return;
   await api('/admin/api/apis/'+id, {method:'DELETE'});
   loadApis();
 }
 
 async function editApi(id) {
-  const name = prompt('New API name:');
-  if(!name) return;
-  const url = prompt('New URL template:');
-  if(!url) return;
-  await api('/admin/api/apis/'+id, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name,url})});
+  const d = await api('/admin/api/apis');
+  const a = d.apis.find(x=>x.id===id);
+  if(!a) return;
+  editApiId = id;
+  document.getElementById('ea-name').value = a.name;
+  document.getElementById('ea-public').value = a.public_url||'';
+  document.getElementById('ea-real').value = a.real_url||'';
+  document.getElementById('ea-realkey').value = a.real_key||'';
+  document.getElementById('edit-api-modal').classList.add('show');
+}
+
+function closeEditApi() { document.getElementById('edit-api-modal').classList.remove('show'); }
+
+async function saveEditApi() {
+  const body = {
+    name: document.getElementById('ea-name').value,
+    public_url: document.getElementById('ea-public').value,
+    real_url: document.getElementById('ea-real').value,
+    real_key: document.getElementById('ea-realkey').value
+  };
+  await api('/admin/api/apis/'+editApiId, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+  closeEditApi();
   loadApis();
 }
 
-// KEYS
+// ===== KEYS =====
 async function loadKeys() {
   const d = await api('/admin/api/keys');
   const tb = document.querySelector('#key-table tbody');
@@ -552,7 +597,7 @@ async function genKey() {
   if(!name) return alert('Enter name');
   const d = await api('/admin/api/keys', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({api_id,name,expiry,rate_limit})});
   if(d.ok) { 
-    alert('✅ Key Generated:\\n\\n' + d.key + '\\n\\nYeh key copy karke dashboard pe use karo!'); 
+    alert('✅ Key Generated:\\n\\n' + d.key + '\\n\\nDashboard pe test karo!'); 
     document.getElementById('key-name').value=''; 
     loadKeys(); 
   }
@@ -596,7 +641,7 @@ async function saveEditKey() {
   loadKeys();
 }
 
-// LIVE
+// ===== LIVE =====
 async function loadLive() {
   const d = await api('/admin/api/live');
   const el = document.getElementById('live-logs');
@@ -617,7 +662,7 @@ function toggleAuto() {
   else { autoTimer = setInterval(()=>{loadLive();loadKeyUsage();},3000); btn.textContent='⏸️ Auto Refresh: ON'; }
 }
 
-// IPS
+// ===== IPS =====
 async function loadBanned() {
   const d = await api('/admin/api/banned');
   const el = document.getElementById('banned-list');
@@ -646,7 +691,7 @@ async function loadIpList() {
   el.innerHTML = entries.map(([ip,c])=>`<div class="log-item">🌐 ${ip}: <b>${c}</b> requests</div>`).join('');
 }
 
-// BACKUP
+// ===== BACKUP =====
 async function exportData() {
   const d = await api('/admin/export');
   const blob = new Blob([JSON.stringify(d,null,2)], {type:'application/json'});
@@ -679,9 +724,15 @@ def index():
     today = datetime.now().strftime("%Y-%m-%d")
     month = datetime.now().strftime("%Y-%m")
     active_keys = len([k for k in data["keys"] if k.get("status")=="active"])
-    # Dashboard pe saari APIs dikhao (jo admin panel se add ki gayi hain)
+    # Dashboard pe sirf PUBLIC URL bhejo (real URL bhejo hi nahi)
+    public_apis = []
+    for a in data["apis"]:
+        public_apis.append({
+            "name": a["name"],
+            "public_url": a.get("public_url", a.get("url", ""))
+        })
     return render_template_string(DASHBOARD_HTML,
-        apis=data["apis"],
+        apis=public_apis,
         total=data["stats"]["total_requests"],
         today=data["stats"]["daily"].get(today, 0),
         monthly=data["stats"]["monthly"].get(month, 0),
@@ -757,11 +808,19 @@ def handle_api_request(custom=False):
     if not api_obj:
         return jsonify({"status": False, "error": "API not found"}), 404
 
-    url = api_obj["url"]
-    url = url.replace("{key}", key_str).replace("{number}", number).replace("{message}", message).replace("{count}", count)
+    # ===== YAHAN ASLI JAADU =====
+    # REAL URL use karo (hidden), user ke {key} ki jagah real_key daalo (agar diya hai)
+    real_url = api_obj.get("real_url") or api_obj.get("url", "")
+    real_key = api_obj.get("real_key", "")
+
+    final_url = real_url.replace("{number}", number).replace("{message}", message).replace("{count}", count)
+    if real_key:
+        final_url = final_url.replace("{key}", real_key)
+    else:
+        final_url = final_url.replace("{key}", key_str)
 
     try:
-        r = http_requests.get(url, timeout=15)
+        r = http_requests.get(final_url, timeout=15)
         result = r.text
         status = "success" if r.status_code == 200 else f"error_{r.status_code}"
     except Exception as e:
@@ -839,9 +898,9 @@ def admin_apis():
         api = {
             "id": secrets.token_hex(8),
             "name": body["name"],
-            "endpoint": body["endpoint"],
-            "example": body.get("example",""),
-            "url": body["url"],
+            "public_url": body.get("public_url", ""),
+            "real_url": body.get("real_url", ""),
+            "real_key": body.get("real_key", ""),
             "created": datetime.now().isoformat()
         }
         data["apis"].append(api)
@@ -860,8 +919,10 @@ def admin_api_edit(api_id):
     body = request.json
     for a in data["apis"]:
         if a["id"] == api_id:
-            a["name"] = body.get("name", a["name"])
-            a["url"] = body.get("url", a["url"])
+            if "name" in body: a["name"] = body["name"]
+            if "public_url" in body: a["public_url"] = body["public_url"]
+            if "real_url" in body: a["real_url"] = body["real_url"]
+            if "real_key" in body: a["real_key"] = body["real_key"]
             break
     save_data(data)
     return jsonify({"ok": True})
