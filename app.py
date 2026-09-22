@@ -1,11 +1,9 @@
-# app.py - Bronx Ultra API Management System
-# Deploy on Render.com
+# app.py - Bronx Ultra API Management System (FULL UPDATED)
 
 import os
 import json
 import time
 import secrets
-import hashlib
 from datetime import datetime, timedelta
 from functools import wraps
 from collections import defaultdict
@@ -19,10 +17,10 @@ app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(32))
 # ==================== CONFIG ====================
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "bronx-admin-op")
 DATA_FILE = "data.json"
-DDOS_WINDOW = 10  # seconds
-DDOS_THRESHOLD = 15  # requests in window
+DDOS_WINDOW = 10
+DDOS_THRESHOLD = 20
 
-# ==================== DATA STORAGE ====================
+# ==================== DATA ====================
 data_lock = Lock()
 
 def load_data():
@@ -53,9 +51,9 @@ def save_data(data):
     with open(DATA_FILE, "w") as f:
         json.dump(data, f, indent=2)
 
-# ==================== RATE LIMIT TRACKER ====================
-rate_tracker = defaultdict(list)  # key -> [timestamps]
-ip_tracker = defaultdict(list)    # ip -> [timestamps]
+# ==================== TRACKERS ====================
+rate_tracker = defaultdict(list)
+ip_tracker = defaultdict(list)
 
 def check_rate_limit(key_str, limit_per_min):
     now = time.time()
@@ -77,7 +75,6 @@ def check_ddos(ip):
         return True
     return False
 
-# ==================== AUTH DECORATOR ====================
 def admin_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -86,7 +83,7 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated
 
-# ==================== HTML TEMPLATES ====================
+# ==================== DASHBOARD HTML ====================
 DASHBOARD_HTML = """
 <!DOCTYPE html>
 <html lang="en">
@@ -96,7 +93,7 @@ DASHBOARD_HTML = """
 <title>Bronx Ultra - API Dashboard</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',sans-serif; }
-body { background: linear-gradient(135deg,#0f0c29,#302b63,#24243e); min-height:100vh; color:#fff; padding:20px; }
+body { background:linear-gradient(135deg,#0f0c29,#302b63,#24243e); min-height:100vh; color:#fff; padding:20px; }
 .container { max-width:1100px; margin:0 auto; }
 .header { text-align:center; padding:30px 20px; background:rgba(255,255,255,0.05); border-radius:20px; backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,0.1); margin-bottom:20px; }
 .header h1 { font-size:2.5rem; background:linear-gradient(90deg,#ff6b6b,#feca57,#48dbfb,#ff9ff3); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
@@ -104,21 +101,22 @@ body { background: linear-gradient(135deg,#0f0c29,#302b63,#24243e); min-height:1
 .handle { display:inline-block; margin-top:12px; padding:8px 20px; background:linear-gradient(90deg,#667eea,#764ba2); border-radius:25px; font-weight:bold; }
 .card { background:rgba(255,255,255,0.05); border-radius:15px; padding:20px; margin-bottom:20px; border:1px solid rgba(255,255,255,0.1); backdrop-filter:blur(10px); }
 .card h2 { margin-bottom:15px; color:#48dbfb; font-size:1.3rem; }
-.api-box { background:rgba(0,0,0,0.3); border-radius:10px; padding:15px; margin-bottom:10px; font-family:monospace; word-break:break-all; font-size:0.9rem; position:relative; }
-.copy-btn { background:linear-gradient(90deg,#48dbfb,#0abde3); border:none; color:#fff; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:bold; margin-top:10px; }
+.api-item { background:rgba(0,0,0,0.3); border-radius:12px; padding:15px; margin-bottom:12px; border-left:4px solid #48dbfb; }
+.api-item .api-name { font-size:1.1rem; font-weight:bold; color:#feca57; margin-bottom:8px; }
+.api-item .api-url { font-family:monospace; font-size:0.85rem; word-break:break-all; color:#ddd; background:rgba(0,0,0,0.4); padding:10px; border-radius:8px; margin-bottom:8px; }
+.copy-btn { background:linear-gradient(90deg,#48dbfb,#0abde3); border:none; color:#fff; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:bold; font-size:0.85rem; margin-right:5px; }
 .copy-btn:hover { opacity:0.8; }
-.stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:15px; }
+.copy-btn.purple { background:linear-gradient(90deg,#667eea,#764ba2); }
+.copy-btn.green { background:linear-gradient(90deg,#10ac84,#1dd1a1); }
+.stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:15px; }
 .stat-box { background:linear-gradient(135deg,rgba(102,126,234,0.3),rgba(118,75,162,0.3)); padding:20px; border-radius:12px; text-align:center; border:1px solid rgba(255,255,255,0.1); }
 .stat-box .num { font-size:2rem; font-weight:bold; color:#feca57; }
 .stat-box .label { color:#aaa; margin-top:5px; font-size:0.9rem; }
-.btn { display:inline-block; padding:12px 25px; background:linear-gradient(90deg,#667eea,#764ba2); color:#fff; text-decoration:none; border-radius:10px; font-weight:bold; border:none; cursor:pointer; margin:5px; transition:0.3s; }
-.btn:hover { transform:translateY(-2px); box-shadow:0 10px 20px rgba(102,126,234,0.4); }
-.input-group { margin-bottom:15px; }
-.input-group label { display:block; margin-bottom:5px; color:#aaa; font-size:0.9rem; }
-.input-group input, .input-group select, .input-group textarea { width:100%; padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:rgba(0,0,0,0.3); color:#fff; font-size:1rem; }
-.input-group input:focus, .input-group select:focus { outline:none; border-color:#48dbfb; }
-.api-list-item { display:flex; justify-content:space-between; align-items:center; padding:12px; background:rgba(0,0,0,0.2); border-radius:10px; margin-bottom:8px; flex-wrap:wrap; gap:8px; }
-.tag { background:linear-gradient(90deg,#48dbfb,#0abde3); padding:4px 10px; border-radius:15px; font-size:0.75rem; font-weight:bold; }
+.btn { display:inline-block; padding:12px 25px; background:linear-gradient(90deg,#667eea,#764ba2); color:#fff; text-decoration:none; border-radius:10px; font-weight:bold; border:none; cursor:pointer; margin:5px; }
+.btn:hover { transform:translateY(-2px); }
+.empty { color:#aaa; text-align:center; padding:30px; }
+.usage-box { background:rgba(0,0,0,0.4); border-radius:10px; padding:15px; margin-top:15px; }
+.usage-box input { width:100%; padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:rgba(0,0,0,0.3); color:#fff; margin-bottom:10px; font-family:monospace; }
 .footer { text-align:center; padding:20px; color:#666; }
 </style>
 </head>
@@ -131,19 +129,40 @@ body { background: linear-gradient(135deg,#0f0c29,#302b63,#24243e); min-height:1
   </div>
 
   <div class="card">
-    <h2>🔗 Your API Endpoint</h2>
-    <div class="api-box" id="mainApi">{{ api_url }}</div>
-    <button class="copy-btn" onclick="copyText('{{ api_url }}')">📋 Copy API</button>
-    <button class="copy-btn" style="background:linear-gradient(90deg,#feca57,#ff6b6b);" onclick="copyText('{{ custom_api }}')">📋 Copy Custom API</button>
-  </div>
-
-  <div class="card">
     <h2>📊 Statistics</h2>
     <div class="stats-grid">
       <div class="stat-box"><div class="num">{{ total }}</div><div class="label">Total Requests</div></div>
       <div class="stat-box"><div class="num">{{ today }}</div><div class="label">Today</div></div>
       <div class="stat-box"><div class="num">{{ monthly }}</div><div class="label">This Month</div></div>
       <div class="stat-box"><div class="num">{{ active_keys }}</div><div class="label">Active Keys</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🔌 Available APIs</h2>
+    {% if apis %}
+      {% for a in apis %}
+        <div class="api-item">
+          <div class="api-name">🔹 {{ a.name }}</div>
+          <div class="api-url" id="url-{{ a.id }}">{{ a.display_url }}</div>
+          <button class="copy-btn" onclick="copyText('{{ a.display_url }}')">📋 Copy URL</button>
+          <button class="copy-btn purple" onclick="copyText('{{ a.curl }}')">📋 Copy cURL</button>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty">❌ No APIs added yet. Go to Admin Panel to add.</div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>🧪 Test Your Key</h2>
+    <div class="usage-box">
+      <input id="test-url" placeholder="Yahan apna full API URL paste karo..." style="display:none;">
+      <input id="test-key" placeholder="Apni Key paste karo (bronx_...)">
+      <input id="test-number" placeholder="Number (e.g. 9876543210)" value="9876543210">
+      <input id="test-message" placeholder="Message" value="Hi">
+      <button class="copy-btn green" onclick="testKey()">🚀 Send Request</button>
+      <div id="test-result" style="margin-top:15px;font-family:monospace;font-size:0.85rem;"></div>
     </div>
   </div>
 
@@ -155,11 +174,25 @@ body { background: linear-gradient(135deg,#0f0c29,#302b63,#24243e); min-height:1
 </div>
 <script>
 function copyText(t) { navigator.clipboard.writeText(t).then(()=>alert('✅ Copied!')); }
+async function testKey() {
+  const key = document.getElementById('test-key').value.trim();
+  const num = document.getElementById('test-number').value.trim();
+  const msg = document.getElementById('test-message').value.trim();
+  if(!key) return alert('Key daalo');
+  const res = document.getElementById('test-result');
+  res.innerHTML = '⏳ Sending...';
+  try {
+    const r = await fetch(`/api/send?key=${encodeURIComponent(key)}&number=${encodeURIComponent(num)}&message=${encodeURIComponent(msg)}&count=1`);
+    const d = await r.json();
+    res.innerHTML = '<pre style="background:rgba(0,0,0,0.5);padding:10px;border-radius:8px;overflow:auto;">'+JSON.stringify(d,null,2)+'</pre>';
+  } catch(e) { res.innerHTML = '❌ Error: '+e; }
+}
 </script>
 </body>
 </html>
 """
 
+# ==================== ADMIN LOGIN ====================
 ADMIN_LOGIN_HTML = """
 <!DOCTYPE html>
 <html>
@@ -175,7 +208,6 @@ h1 { color:#fff; text-align:center; margin-bottom:25px; background:linear-gradie
 input { width:100%; padding:14px; margin-bottom:15px; border-radius:10px; border:1px solid rgba(255,255,255,0.2); background:rgba(0,0,0,0.3); color:#fff; font-size:1rem; }
 input:focus { outline:none; border-color:#48dbfb; }
 button { width:100%; padding:14px; border:none; border-radius:10px; background:linear-gradient(90deg,#667eea,#764ba2); color:#fff; font-weight:bold; font-size:1rem; cursor:pointer; }
-button:hover { opacity:0.9; }
 .err { color:#ff6b6b; text-align:center; margin-bottom:10px; }
 </style>
 </head>
@@ -192,6 +224,7 @@ button:hover { opacity:0.9; }
 </html>
 """
 
+# ==================== ADMIN PANEL ====================
 ADMIN_HTML = """
 <!DOCTYPE html>
 <html lang="en">
@@ -207,14 +240,14 @@ body { background:linear-gradient(135deg,#0f0c29,#302b63,#24243e); min-height:10
 .header h1 { background:linear-gradient(90deg,#ff6b6b,#feca57,#48dbfb); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
 .logout { background:linear-gradient(90deg,#ff6b6b,#ee5253); color:#fff; padding:10px 20px; border-radius:10px; text-decoration:none; font-weight:bold; }
 .tabs { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; }
-.tab { padding:12px 20px; background:rgba(255,255,255,0.05); border-radius:10px; cursor:pointer; font-weight:bold; border:1px solid rgba(255,255,255,0.1); transition:0.3s; }
+.tab { padding:12px 20px; background:rgba(255,255,255,0.05); border-radius:10px; cursor:pointer; font-weight:bold; border:1px solid rgba(255,255,255,0.1); }
 .tab.active { background:linear-gradient(90deg,#667eea,#764ba2); }
 .tab:hover { background:rgba(102,126,234,0.4); }
 .panel { display:none; background:rgba(255,255,255,0.05); border-radius:15px; padding:25px; border:1px solid rgba(255,255,255,0.1); }
 .panel.active { display:block; }
 .card { background:rgba(0,0,0,0.2); border-radius:12px; padding:20px; margin-bottom:15px; }
 .card h3 { color:#48dbfb; margin-bottom:15px; }
-.stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:15px; margin-bottom:20px; }
+.stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:15px; }
 .stat { background:linear-gradient(135deg,rgba(102,126,234,0.3),rgba(118,75,162,0.3)); padding:20px; border-radius:12px; text-align:center; }
 .stat .num { font-size:1.8rem; font-weight:bold; color:#feca57; }
 .stat .label { color:#aaa; font-size:0.85rem; margin-top:5px; }
@@ -228,16 +261,18 @@ label { display:block; margin-bottom:5px; color:#aaa; font-size:0.85rem; }
 .btn-warn { background:linear-gradient(90deg,#feca57,#ff9f43); color:#000; }
 .btn:hover { opacity:0.85; }
 table { width:100%; border-collapse:collapse; margin-top:10px; }
-th, td { padding:10px; text-align:left; border-bottom:1px solid rgba(255,255,255,0.1); font-size:0.88rem; word-break:break-word; }
+th, td { padding:10px; text-align:left; border-bottom:1px solid rgba(255,255,255,0.1); font-size:0.85rem; word-break:break-word; }
 th { background:rgba(102,126,234,0.3); color:#48dbfb; }
 tr:hover { background:rgba(255,255,255,0.03); }
-.tag { padding:3px 9px; border-radius:12px; font-size:0.75rem; font-weight:bold; }
+.tag { padding:3px 9px; border-radius:12px; font-size:0.72rem; font-weight:bold; }
 .tag-active { background:#10ac84; }
 .tag-expired { background:#ee5253; }
 .tag-stopped { background:#feca57; color:#000; }
-.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:15px; }
-@media(max-width:768px){ .grid2 { grid-template-columns:1fr; } }
-.log-item { padding:8px; background:rgba(0,0,0,0.3); border-radius:6px; margin-bottom:5px; font-size:0.85rem; font-family:monospace; }
+.api-card { background:rgba(0,0,0,0.3); border-left:4px solid #48dbfb; border-radius:10px; padding:15px; margin-bottom:12px; }
+.api-card .api-title { font-size:1rem; font-weight:bold; color:#feca57; margin-bottom:6px; }
+.api-card .api-url { font-family:monospace; font-size:0.78rem; color:#aaa; word-break:break-all; margin-bottom:8px; }
+.api-card .api-id { font-size:0.75rem; color:#feca57; background:rgba(0,0,0,0.5); padding:3px 8px; border-radius:5px; display:inline-block; margin-bottom:8px; }
+.log-item { padding:8px; background:rgba(0,0,0,0.3); border-radius:6px; margin-bottom:5px; font-size:0.82rem; font-family:monospace; }
 .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; align-items:center; justify-content:center; padding:20px; }
 .modal.show { display:flex; }
 .modal-content { background:#1a1a2e; padding:30px; border-radius:15px; max-width:500px; width:100%; max-height:90vh; overflow-y:auto; border:1px solid rgba(255,255,255,0.2); }
@@ -255,9 +290,9 @@ tr:hover { background:rgba(255,255,255,0.03); }
     <div class="tab active" onclick="showTab('stats',this)">📊 Stats</div>
     <div class="tab" onclick="showTab('apis',this)">🔌 APIs</div>
     <div class="tab" onclick="showTab('keys',this)">🔑 Keys</div>
-    <div class="tab" onclick="showTab('live',this)">📡 Live Monitor</div>
-    <div class="tab" onclick="showTab('ips',this)">🛡️ IP Management</div>
-    <div class="tab" onclick="showTab('backup',this)">💾 Import/Export</div>
+    <div class="tab" onclick="showTab('live',this)">📡 Live</div>
+    <div class="tab" onclick="showTab('ips',this)">🛡️ IPs</div>
+    <div class="tab" onclick="showTab('backup',this)">💾 Backup</div>
   </div>
 
   <!-- STATS -->
@@ -277,14 +312,14 @@ tr:hover { background:rgba(255,255,255,0.03); }
   <div class="panel" id="apis">
     <div class="card">
       <h3>➕ Add Custom API</h3>
-      <label>API Name</label>
-      <input id="api-name" placeholder="e.g. Bronx SMS API">
-      <label>API Endpoint (base URL)</label>
-      <input id="api-endpoint" placeholder="https://your-api.vercel.app/send">
+      <label>API Name (yeh naam keys dropdown me aayega)</label>
+      <input id="api-name" placeholder="e.g. bomber">
+      <label>API Endpoint (base URL - optional)</label>
+      <input id="api-endpoint" placeholder="https://bronx-api-bom-v1000.vercel.app/send">
       <label>API Example Number</label>
       <input id="api-example" placeholder="9890909851">
-      <label>API Full URL Template (use {key},{number},{message},{count})</label>
-      <textarea id="api-url" rows="3" placeholder="https://bronx-api-bom-v1000.vercel.app/send?key={key}&message={message}&number={number}&count={count}"></textarea>
+      <label>API Full URL Template — use {number},{message},{count}</label>
+      <textarea id="api-url" rows="3" placeholder="https://bronx-api-bom-v1000.vercel.app/send?key=bronx-op&message={message}&number={number}&count={count}"></textarea>
       <button class="btn btn-success" onclick="addApi()">➕ Add API</button>
     </div>
     <div class="card">
@@ -297,11 +332,11 @@ tr:hover { background:rgba(255,255,255,0.03); }
   <div class="panel" id="keys">
     <div class="card">
       <h3>🔑 Generate Key</h3>
-      <label>Select Custom API</label>
+      <label>Select API (name dropdown me aayega)</label>
       <select id="key-api"></select>
-      <label>Key Name</label>
-      <input id="key-name" placeholder="e.g. Premium User 1">
-      <label>Expiry (e.g. 1day, 7day, 30day)</label>
+      <label>Key Name (jaise: user1, premium)</label>
+      <input id="key-name" placeholder="e.g. user1">
+      <label>Expiry (1day, 7day, 30day, 365day)</label>
       <input id="key-expiry" placeholder="30day">
       <label>Rate Limit (per minute)</label>
       <input id="key-limit" type="number" value="10" min="1">
@@ -321,7 +356,7 @@ tr:hover { background:rgba(255,255,255,0.03); }
     <div class="card">
       <h3>📡 Live Request Monitor</h3>
       <button class="btn btn-primary" onclick="loadLive()">🔄 Refresh</button>
-      <button class="btn btn-warn" onclick="toggleAuto()" id="auto-btn">▶️ Auto Refresh: OFF</button>
+      <button class="btn btn-warn" onclick="toggleAuto()" id="auto-btn">▶️ Auto: OFF</button>
       <div id="live-logs" style="margin-top:15px; max-height:500px; overflow-y:auto;"></div>
     </div>
     <div class="card">
@@ -333,7 +368,7 @@ tr:hover { background:rgba(255,255,255,0.03); }
   <!-- IPS -->
   <div class="panel" id="ips">
     <div class="card">
-      <h3>🛡️ Banned IPs (Auto-ban after 15 req/10s)</h3>
+      <h3>🛡️ Banned IPs</h3>
       <div id="banned-list"></div>
       <label style="margin-top:15px;">Manually Ban IP</label>
       <input id="ban-ip" placeholder="e.g. 192.168.1.1">
@@ -349,12 +384,10 @@ tr:hover { background:rgba(255,255,255,0.03); }
   <div class="panel" id="backup">
     <div class="card">
       <h3>💾 Export Data</h3>
-      <button class="btn btn-primary" onclick="exportData()">📥 Export JSON</button>
-      <a href="/admin/export" class="btn btn-success" style="text-decoration:none;">⬇️ Download Export</a>
+      <a href="/admin/export" class="btn btn-success" style="text-decoration:none;">⬇️ Download JSON</a>
     </div>
     <div class="card">
       <h3>📤 Import Data</h3>
-      <label>Paste JSON here</label>
       <textarea id="import-json" rows="8" placeholder='{"apis":[],"keys":[]}'></textarea>
       <button class="btn btn-warn" onclick="importData()">📤 Import</button>
     </div>
@@ -394,12 +427,10 @@ function showTab(id, el) {
   if(id==='ips') { loadBanned(); loadIpList(); }
 }
 
-async function api(url, opts={}) {
-  const r = await fetch(url, opts);
-  return r.json();
-}
+async function api(url, opts={}) { const r = await fetch(url, opts); return r.json(); }
 
-// STATS
+function copyText(t) { navigator.clipboard.writeText(t).then(()=>alert('✅ Copied: '+t)); }
+
 async function loadStats() {
   const d = await api('/admin/api/stats');
   document.getElementById('s-total').textContent = d.total;
@@ -410,7 +441,6 @@ async function loadStats() {
   document.getElementById('s-banned').textContent = d.banned;
 }
 
-// APIS
 async function loadApis() {
   const d = await api('/admin/api/apis');
   const list = document.getElementById('api-list');
@@ -419,15 +449,12 @@ async function loadApis() {
   sel.innerHTML = '<option value="">-- Select API --</option>';
   if(!d.apis.length) { list.innerHTML = '<p style="color:#aaa">No APIs yet</p>'; return; }
   d.apis.forEach(a=>{
-    list.innerHTML += `<div class="card" style="margin-bottom:10px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-        <div><strong>${a.name}</strong> <span class="tag">${a.endpoint}</span></div>
-        <div>
-          <button class="btn btn-warn" onclick="editApi('${a.id}')">✏️</button>
-          <button class="btn btn-danger" onclick="delApi('${a.id}')">🗑️</button>
-        </div>
-      </div>
-      <div style="font-family:monospace; font-size:0.8rem; color:#aaa; margin-top:8px; word-break:break-all;">${a.url}</div>
+    list.innerHTML += `<div class="api-card">
+      <div class="api-title">🔹 ${a.name}</div>
+      <div class="api-id">🆔 ID: ${a.id} <button class="btn btn-primary" style="padding:2px 8px;font-size:0.7rem;margin-left:5px;" onclick="copyText('${a.id}')">📋</button></div>
+      <div class="api-url">${a.url}</div>
+      <button class="btn btn-warn" onclick="editApi('${a.id}')">✏️ Edit</button>
+      <button class="btn btn-danger" onclick="delApi('${a.id}')">🗑️ Delete</button>
     </div>`;
     sel.innerHTML += `<option value="${a.id}">${a.name}</option>`;
   });
@@ -438,9 +465,16 @@ async function addApi() {
   const endpoint = document.getElementById('api-endpoint').value.trim();
   const example = document.getElementById('api-example').value.trim();
   const url = document.getElementById('api-url').value.trim();
-  if(!name || !endpoint || !url) return alert('Fill all fields');
+  if(!name || !url) return alert('Name aur URL required');
   const d = await api('/admin/api/apis', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name,endpoint,example,url})});
-  if(d.ok) { document.getElementById('api-name').value=''; document.getElementById('api-endpoint').value=''; document.getElementById('api-example').value=''; document.getElementById('api-url').value=''; loadApis(); alert('✅ API Added'); }
+  if(d.ok) { 
+    document.getElementById('api-name').value=''; 
+    document.getElementById('api-endpoint').value=''; 
+    document.getElementById('api-example').value=''; 
+    document.getElementById('api-url').value=''; 
+    loadApis(); 
+    alert('✅ API Added'); 
+  }
 }
 
 async function delApi(id) {
@@ -450,15 +484,17 @@ async function delApi(id) {
 }
 
 async function editApi(id) {
-  const name = prompt('New API name:');
+  const d = await api('/admin/api/apis');
+  const a = d.apis.find(x=>x.id===id);
+  if(!a) return;
+  const name = prompt('New API name:', a.name);
   if(!name) return;
-  const url = prompt('New URL template:');
+  const url = prompt('New URL template:', a.url);
   if(!url) return;
   await api('/admin/api/apis/'+id, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name,url})});
   loadApis();
 }
 
-// KEYS
 async function loadKeys() {
   const d = await api('/admin/api/keys');
   const tb = document.querySelector('#key-table tbody');
@@ -468,7 +504,7 @@ async function loadKeys() {
     const status = expired ? 'expired' : k.status;
     const cls = status==='active'?'tag-active':status==='expired'?'tag-expired':'tag-stopped';
     tb.innerHTML += `<tr>
-      <td style="font-family:monospace;font-size:0.8rem;">${k.key}</td>
+      <td style="font-family:monospace;font-size:0.75rem;">${k.key}<br><button class="btn btn-primary" style="padding:2px 6px;font-size:0.7rem;margin-top:3px;" onclick="copyText('${k.key}')">📋</button></td>
       <td>${k.name}</td>
       <td>${k.api_name||'-'}</td>
       <td>${k.expires_at?new Date(k.expires_at).toLocaleDateString():'Never'}</td>
@@ -488,23 +524,15 @@ async function genKey() {
   const name = document.getElementById('key-name').value.trim();
   const expiry = document.getElementById('key-expiry').value.trim();
   const rate_limit = parseInt(document.getElementById('key-limit').value)||10;
-  if(!api_id) return alert('Select API');
-  if(!name) return alert('Enter name');
+  if(!api_id) return alert('API select karo');
+  if(!name) return alert('Key name daalo');
   const d = await api('/admin/api/keys', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({api_id,name,expiry,rate_limit})});
-  if(d.ok) { alert('✅ Key Generated: '+d.key); document.getElementById('key-name').value=''; loadKeys(); }
+  if(d.ok) { alert('✅ Key Generated:\\n\\n'+d.key+'\\n\\nCopy kar lo!'); document.getElementById('key-name').value=''; loadKeys(); }
   else alert('❌ '+d.error);
 }
 
-async function delKey(id) {
-  if(!confirm('Delete this key?')) return;
-  await api('/admin/api/keys/'+id, {method:'DELETE'});
-  loadKeys();
-}
-
-async function toggleKey(id) {
-  await api('/admin/api/keys/'+id+'/toggle', {method:'POST'});
-  loadKeys();
-}
+async function delKey(id) { if(!confirm('Delete?')) return; await api('/admin/api/keys/'+id, {method:'DELETE'}); loadKeys(); }
+async function toggleKey(id) { await api('/admin/api/keys/'+id+'/toggle', {method:'POST'}); loadKeys(); }
 
 async function editKey(id) {
   const d = await api('/admin/api/keys');
@@ -517,7 +545,6 @@ async function editKey(id) {
   document.getElementById('e-status').value = k.status;
   document.getElementById('edit-modal').classList.add('show');
 }
-
 function closeModal() { document.getElementById('edit-modal').classList.remove('show'); }
 
 async function saveEditKey() {
@@ -528,11 +555,9 @@ async function saveEditKey() {
     status: document.getElementById('e-status').value
   };
   await api('/admin/api/keys/'+editKeyId, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
-  closeModal();
-  loadKeys();
+  closeModal(); loadKeys();
 }
 
-// LIVE
 async function loadLive() {
   const d = await api('/admin/api/live');
   const el = document.getElementById('live-logs');
@@ -549,24 +574,22 @@ async function loadKeyUsage() {
 
 function toggleAuto() {
   const btn = document.getElementById('auto-btn');
-  if(autoTimer) { clearInterval(autoTimer); autoTimer=null; btn.textContent='▶️ Auto Refresh: OFF'; }
-  else { autoTimer = setInterval(()=>{loadLive();loadKeyUsage();},3000); btn.textContent='⏸️ Auto Refresh: ON'; }
+  if(autoTimer) { clearInterval(autoTimer); autoTimer=null; btn.textContent='▶️ Auto: OFF'; }
+  else { autoTimer = setInterval(()=>{loadLive();loadKeyUsage();},3000); btn.textContent='⏸️ Auto: ON'; }
 }
 
-// IPS
 async function loadBanned() {
   const d = await api('/admin/api/banned');
   const el = document.getElementById('banned-list');
   if(!d.banned.length) { el.innerHTML = '<p style="color:#aaa">No banned IPs</p>'; return; }
-  el.innerHTML = d.banned.map(ip=>`<div class="log-item">🚫 ${ip} <button class="btn btn-success" style="padding:4px 10px;font-size:0.75rem;" onclick="unbanIp('${ip}')">Unban</button></div>`).join('');
+  el.innerHTML = d.banned.map(ip=>`<div class="log-item">🚫 ${ip} <button class="btn btn-success" style="padding:3px 10px;font-size:0.72rem;" onclick="unbanIp('${ip}')">Unban</button></div>`).join('');
 }
 
 async function banIp() {
   const ip = document.getElementById('ban-ip').value.trim();
   if(!ip) return;
   await api('/admin/api/ban', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ip})});
-  document.getElementById('ban-ip').value='';
-  loadBanned();
+  document.getElementById('ban-ip').value=''; loadBanned();
 }
 
 async function unbanIp(ip) {
@@ -582,45 +605,46 @@ async function loadIpList() {
   el.innerHTML = entries.map(([ip,c])=>`<div class="log-item">🌐 ${ip}: <b>${c}</b> requests</div>`).join('');
 }
 
-// BACKUP
-async function exportData() {
-  const d = await api('/admin/export');
-  const blob = new Blob([JSON.stringify(d,null,2)], {type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'bronx-backup-'+Date.now()+'.json';
-  a.click();
-}
-
 async function importData() {
   try {
     const data = JSON.parse(document.getElementById('import-json').value);
     await api('/admin/import', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
-    alert('✅ Imported!');
-    loadApis(); loadKeys();
+    alert('✅ Imported!'); loadApis(); loadKeys();
   } catch(e) { alert('❌ Invalid JSON'); }
 }
 
-// INIT
 loadStats();
 </script>
 </body>
 </html>
 """
 
-# ==================== ROUTES ====================
-
+# ==================== DASHBOARD ROUTE ====================
 @app.route("/")
 def index():
     data = load_data()
     host = request.host_url.rstrip('/')
-    api_url = f"{host}/api/send?key=YOUR_KEY&number=9876543210&message=Hi&count=5"
-    custom_api = f"{host}/api/custom?key=YOUR_KEY&api=API_ID&number=9876543210&message=Hi&count=5"
+    
+    # Har API ka full display URL banao (with example key placeholder)
+    apis_display = []
+    for a in data["apis"]:
+        display_url = a["url"].replace("{key}", "YOUR_KEY").replace("{number}", "9876543210").replace("{message}", "Hi").replace("{count}", "5")
+        # agar {key} nahi hai toh key param add karo
+        if "{key}" not in a["url"] and "key=" not in display_url:
+            sep = "&" if "?" in display_url else "?"
+            display_url = display_url + sep + "key=YOUR_KEY"
+        curl = f'curl "{display_url}"'
+        apis_display.append({
+            "id": a["id"],
+            "name": a["name"],
+            "display_url": display_url,
+            "curl": curl
+        })
+    
     today = datetime.now().strftime("%Y-%m-%d")
     month = datetime.now().strftime("%Y-%m")
     return render_template_string(DASHBOARD_HTML,
-        api_url=api_url,
-        custom_api=custom_api,
+        apis=apis_display,
         total=data["stats"]["total_requests"],
         today=data["stats"]["daily"].get(today, 0),
         monthly=data["stats"]["monthly"].get(month, 0),
@@ -628,16 +652,15 @@ def index():
     )
 
 # ==================== PUBLIC API ====================
-
 @app.route("/api/send")
 def api_send():
-    return handle_api_request()
+    return handle_request()
 
 @app.route("/api/custom")
 def api_custom():
-    return handle_api_request(custom=True)
+    return handle_request(custom=True)
 
-def handle_api_request(custom=False):
+def handle_request(custom=False):
     ip = request.headers.get("X-Forwarded-For", request.remote_addr).split(",")[0].strip()
     key_str = request.args.get("key", "").strip()
     number = request.args.get("number", "").strip()
@@ -647,18 +670,15 @@ def handle_api_request(custom=False):
 
     data = load_data()
 
-    # Check banned IP
     if ip in data["stats"]["banned_ips"]:
         return jsonify({"status": False, "error": "Your IP is banned"}), 403
 
-    # DDoS check
     if check_ddos(ip):
         return jsonify({"status": False, "error": "DDoS detected - IP banned"}), 403
 
     if not key_str:
         return jsonify({"status": False, "error": "Key required"}), 400
 
-    # Find key
     key_obj = None
     for k in data["keys"]:
         if k["key"] == key_str:
@@ -668,11 +688,9 @@ def handle_api_request(custom=False):
     if not key_obj:
         return jsonify({"status": False, "error": "Invalid key"}), 401
 
-    # Status check
     if key_obj.get("status") != "active":
         return jsonify({"status": False, "error": "Key stopped"}), 403
 
-    # Expiry check
     if key_obj.get("expires_at"):
         try:
             exp = datetime.fromisoformat(key_obj["expires_at"])
@@ -681,19 +699,16 @@ def handle_api_request(custom=False):
         except:
             pass
 
-    # Custom API check - key must match the API
     if custom:
         if not api_id:
             return jsonify({"status": False, "error": "API ID required"}), 400
         if key_obj.get("api_id") != api_id:
             return jsonify({"status": False, "error": "Key not authorized for this API"}), 403
 
-    # Rate limit
     rl = key_obj.get("rate_limit", 10)
     if not check_rate_limit(key_str, rl):
         return jsonify({"status": False, "error": f"Rate limit exceeded ({rl}/min)"}), 429
 
-    # Get API
     api_obj = None
     target_api_id = api_id if custom else key_obj.get("api_id")
     for a in data["apis"]:
@@ -704,11 +719,14 @@ def handle_api_request(custom=False):
     if not api_obj:
         return jsonify({"status": False, "error": "API not found"}), 404
 
-    # Build URL
     url = api_obj["url"]
     url = url.replace("{key}", key_str).replace("{number}", number).replace("{message}", message).replace("{count}", count)
+    
+    # agar {key} placeholder nahi tha, toh key param add karo
+    if "{key}" not in api_obj["url"] and "key=" not in api_obj["url"]:
+        sep = "&" if "?" in url else "?"
+        url = url + sep + "key=" + key_str
 
-    # Forward request
     try:
         r = http_requests.get(url, timeout=15)
         result = r.text
@@ -717,7 +735,6 @@ def handle_api_request(custom=False):
         result = str(e)
         status = "error"
 
-    # Update stats
     with data_lock:
         data = load_data()
         today = datetime.now().strftime("%Y-%m-%d")
@@ -743,7 +760,6 @@ def handle_api_request(custom=False):
     return jsonify({"status": status=="success", "response": result, "api": api_obj["name"]})
 
 # ==================== ADMIN AUTH ====================
-
 @app.route("/admin/login", methods=["GET","POST"])
 def admin_login():
     if request.method == "POST":
@@ -764,7 +780,6 @@ def admin_panel():
     return render_template_string(ADMIN_HTML)
 
 # ==================== ADMIN API ====================
-
 @app.route("/admin/api/stats")
 @admin_required
 def admin_stats():
@@ -789,7 +804,7 @@ def admin_apis():
         api = {
             "id": secrets.token_hex(8),
             "name": body["name"],
-            "endpoint": body["endpoint"],
+            "endpoint": body.get("endpoint",""),
             "example": body.get("example",""),
             "url": body["url"],
             "created": datetime.now().isoformat()
@@ -830,7 +845,6 @@ def admin_keys():
                 break
         if not api_name:
             return jsonify({"ok": False, "error": "API not found"})
-        # Parse expiry
         expiry_str = body.get("expiry","").lower()
         expires_at = None
         if expiry_str:
@@ -940,8 +954,7 @@ def admin_ip_list():
 @app.route("/admin/export")
 @admin_required
 def admin_export():
-    data = load_data()
-    return jsonify(data)
+    return jsonify(load_data())
 
 @app.route("/admin/import", methods=["POST"])
 @admin_required
@@ -956,7 +969,6 @@ def admin_import():
         return jsonify({"ok": False, "error": "Invalid JSON"})
 
 # ==================== MAIN ====================
-
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
